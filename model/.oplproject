@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="ASCII"?><project>
+    	
+    <version>1.0</version>
+    	
+    <description>Modello per ottimizzazione di routing di operatori sanitari</description>
+    	
+    <configs>
+        		
+        <config default="true" name="tutorial-run" category="opl">
+            			
+            <ref name="thesis.mod" type="model">
+			</ref>
+            			
+            <ref name="thesis.dat" type="data">
+			</ref>
+            			
+            <ref name="thesis.ops" type="setting">
+			</ref>
+            		
+        </config>
+        	
+    </configs>
+    	
+
+</project>
