@@ -6,12 +6,25 @@
     	
     <configs>
         		
-        <config default="true" name="tutorial-run" category="opl">
+        <config default="false" name="version-0" category="opl">
             			
-            <ref name="thesis.mod" type="model">
+            <ref name="thesis.ops" type="setting">
 			</ref>
             			
-            <ref name="thesis.dat" type="data">
+            <ref name="thesis-0.mod" type="model">
+			</ref>
+            			
+            <ref name="thesis-0.dat" type="data">
+			</ref>
+            		
+        </config>
+        		
+        <config default="true" name="version-1" category="opl">
+            			
+            <ref name="thesis-1.mod" type="model">
+			</ref>
+            			
+            <ref name="thesis-1.dat" type="data">
 			</ref>
             			
             <ref name="thesis.ops" type="setting">
