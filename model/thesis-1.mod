@@ -93,6 +93,8 @@ int visitsPerVisitType[Visits];
 	PREPROCESSING
 ****************************************************************/
 
+aa
+
 execute PATIENT_STATS {	
 	for(var r in Requests){
 		visitsPerPatient[r.patient] += 1;
