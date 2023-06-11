@@ -9,7 +9,8 @@
 ****************************************************************/
 
 int bigM = ...;
-int WL = ...;
+int Cw = ...;
+int Cx = ...;
 
 /****************************************************************
 	END CONSTANTS
@@ -43,6 +44,7 @@ int visitRequest[Patients][Days] = ...;				// r_{pd}
 int visitSkill[Patients][Days] = ...;				// s_{pd}
 int visitStartTime[Patients][Days] = ...;			// t_{pd}^{1}		
 int visitEndTime[Patients][Days] = ...;				// t_{pd}^{2}
+int visitPriority[Patients][Days] = ...;
 
 // logistic network
 int numNodes = numPatients + numOperators;
@@ -133,14 +135,16 @@ execute FEASIBLE_PATIENTS {
 dvar boolean assignment[Patients][Operators];
 dvar boolean movement[Nodes][Nodes][Operators][Days];
 dvar int operatorWorkload[Operators];
+dvar boolean visitExecution[Operators][Patients][Days];
 
 // objective function: cost
 dexpr float costs = sum(o in Operators)(
-	sum(p in Patients)(
-		assignment[p][o] * operatorWage[o] * sum(d in Days)(visitEndTime[p][d] - visitStartTime[p][d])
+	operatorWage[o] * sum(p in Patients)(
+		 sum(d in Days)(visitExecution[o][p][d] * (visitEndTime[p][d] - visitStartTime[p][d]))
 	) + commutingCost * sum(i in Nodes, j in Nodes)(
 		commutingTime[i][j] * sum(d in Days)(movement[i][j][o][d])
-	)) + WL * (max(o in Operators)(operatorWorkload[o]) - min(o in Operators)(operatorWorkload[o]));
+	)) + Cw * (max(o in Operators)(operatorWorkload[o]) - min(o in Operators)(operatorWorkload[o]))
+	+ Cx * (sum(p in Patients, d in Days) (visitRequest[p][d] - sum(o in Operators) visitExecution[o][p][d]));
 
 /****************************************************************
 	END DECISION VARIABLES AND EXPRESSIONS
@@ -164,13 +168,19 @@ subject to {
 		assignment[p][o] <= feasiblePatients[o][p];
 	}
 	
+	// operators must execute requested visits
+	forall (o in Operators, p in Patients, d in Days){
+		visitExecution[o][p][d] <= assignment[p][o] * visitRequest[p][d];
+	}
+	
+	forall (p in Patients, d in Days : visitPriority[p][d] == 1) {
+		sum(o in Operators) visitExecution[o][p][d] == 1;
+	}
+	
 	// no operator works more than their contract states
 	forall (o in Operators) {
-		operatorWorkload[o] == sum(p in Patients)
-			(assignment[p][o] * sum(d in Days)
-				(visitRequest[p][d] * (visitEndTime[p][d] - visitStartTime[p][d])
-			)
-		);
+		operatorWorkload[o] == sum(p in Patients, d in Days)
+			(visitExecution[o][p][d] * (visitEndTime[p][d] - visitStartTime[p][d]));
 		
 		operatorWorkload[o] <= operatorTime[o];
 	}
@@ -190,19 +200,19 @@ subject to {
 		sum(p in Patients : feasiblePatients[o][p] == 1) movement[p][numPatients + o][o][d] <= 1;
 	}
 	
-	// prevent both loops and unfeasible tours
-	forall (o in Operators, d in Days, p1 in Patients : feasiblePatients[o][p1] == 1, p2 in Patients : feasiblePatients[o][p2] == 1 && p1 != p2 && visitRequest[p1][d] == 1 && visitRequest[p2][d] == 1) {
-		visitEndTime[p1][d] + commutingTime[p1][p2] <= visitStartTime[p2][d] + bigM * (1 - movement[p1][p2][o][d]);
-	}
-	
 	forall (o in Operators, d in Days, p in Patients : feasiblePatients[o][p] == 1) {
 		// operators that visit patients must arrive and left exactly once
-		movement[numPatients + o][p][o][d] + sum(i in Patients : feasiblePatients[o][i] == 1) movement[i][p][o][d] == assignment[p][o] * visitRequest[p][d];
-		movement[p][numPatients + o][o][d] + sum(j in Patients : feasiblePatients[o][j] == 1) movement[p][j][o][d] == assignment[p][o] * visitRequest[p][d];
+		movement[numPatients + o][p][o][d] + sum(i in Patients : feasiblePatients[o][i] == 1) movement[i][p][o][d] == visitExecution[o][p][d];
+		movement[p][numPatients + o][o][d] + sum(j in Patients : feasiblePatients[o][j] == 1) movement[p][j][o][d] == visitExecution[o][p][d];
 		
 		// operators must start by visiting one patients and end by visiting one patient
 		operatorStartTime[o][d] + commutingTime[numPatients + o][p] <= visitStartTime[p][d] + bigM * (1 - movement[numPatients + o][p][o][d]);
 		visitEndTime[p][d] + commutingTime[p][numPatients + o] <= operatorEndTime[o][d] + bigM * (1 - movement[p][numPatients + o][o][d]);
+	}
+	
+	// prevent both loops and unfeasible tours
+	forall (o in Operators, d in Days, p1 in Patients : feasiblePatients[o][p1] == 1, p2 in Patients : feasiblePatients[o][p2] == 1 && p1 != p2 && visitRequest[p1][d] == 1 && visitRequest[p2][d] == 1) {
+		visitEndTime[p1][d] + commutingTime[p1][p2] <= visitStartTime[p2][d] + bigM * (1 - movement[p1][p2][o][d]);
 	}
 };
 
@@ -272,6 +282,67 @@ execute MOV_COUNT {
     }
 }
 
+
+execute VISIT_EXEC {
+	writeln("VISIT EXECUTION");
+	var total_ex = 0;
+	var total_not_ex = 0;
+	for (var p in Patients) {
+		for (var d in Days) {
+			if (visitRequest[p][d] == 1){
+				writeln("Patient ", p , " requested visit on day ", d);
+				var executed = 0;
+				for (var o in Operators){
+					if (visitExecution[o][p][d] == 1){
+						writeln("Visit executed by operator ", o);
+						executed = 1;
+					}
+				}
+				if (executed == 0){
+					writeln("Visit not executed!");
+				}
+				total_ex += executed;
+				total_not_ex += (1 - executed);
+ 			}
+		}
+	}
+	
+	writeln();
+	writeln("Total executed visits: ", total_ex);
+	writeln("Total not executed visits: ", total_not_ex);
+	writeln();
+}
+
+
+execute COSTS {
+	writeln("ACTUAL COSTS");
+	var costs = 0;
+	for (var p in Patients){
+		var patient_costs = 0;
+		for (var o in Operators){
+			for (var d in Days){
+				patient_costs += visitExecution[o][p][d] * (visitEndTime[p][d] - visitStartTime[p][d]);
+			}
+		}
+		costs += patient_costs;
+		writeln(patient_costs, " spent for patient ", p);
+	}
+	
+	var movement_costs = 0;
+	for (var i in Nodes){
+		for (var j in Nodes){
+			for (var o in Operators){
+				for (var d in Days){
+					movement_costs += movement[i][j][o][d] * commutingTime[i][j] * commutingCost;
+				}
+			}
+		}
+	}
+	writeln("Movement costs: ", movement_costs);
+	
+	costs += movement_costs;
+	writeln("Total costs: ", costs);
+}
 
 /****************************************************************
 	END POSTPROCESSING

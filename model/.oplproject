@@ -45,7 +45,7 @@
             		
         </config>
         		
-        <config default="true" name="version-3" category="opl">
+        <config default="false" name="version-3" category="opl">
             			
             <ref name="thesis-3.mod" type="model">
 			</ref>
@@ -54,6 +54,19 @@
 			</ref>
             			
             <ref name="thesis-3.dat" type="data">
+			</ref>
+            		
+        </config>
+        		
+        <config default="true" name="version-4" category="opl">
+            			
+            <ref name="thesis-4.mod" type="model">
+			</ref>
+            			
+            <ref name="thesis-4.dat" type="data">
+			</ref>
+            			
+            <ref name="thesis.ops" type="setting">
 			</ref>
             		
         </config>
