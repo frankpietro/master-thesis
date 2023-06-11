@@ -228,17 +228,54 @@ subject to {
 	}
 	
 	// operators move between patients
-	forall (o in Operators, p1 in Patients, p2 in Patients, d in Days, t1 in TimeSlots, t2 in TimeSlots : t1 < t2){
-		assignment[p1][o] * requestsPerTimeSlot[p1][d][t1] == 1 && assignment[p2][o] * requestsPerTimeSlot[p2][d][t2] == 1 && sum(t in t1+1..t2-1)(sum(p in Patients)(assignment[p][o] * requestsPerTimeSlot[p][d][t])) == 0 => movement[p1][p2][o][d] == 1;
+//	forall (o in Operators, p1 in Patients, p2 in Patients, d in Days, t1 in TimeSlots, t2 in TimeSlots : t1 < t2){
+//		assignment[p1][o] * requestsPerTimeSlot[p1][d][t1] == 1 && assignment[p2][o] * requestsPerTimeSlot[p2][d][t2] == 1 && sum(t in t1+1..t2-1)(sum(p in Patients)(assignment[p][o] * requestsPerTimeSlot[p][d][t])) == 0 => movement[p1][p2][o][d] == 1;
+//	}
+//	
+//	forall (o in Operators, p1 in Patients, d in Days, t1 in TimeSlots){
+//		assignment[p1][o] * requestsPerTimeSlot[p1][d][t1] == 1 && sum(t in t1+1..numTimeSlots)(sum(p in Patients)(assignment[p][o] * requestsPerTimeSlot[p][d][t])) == 0 => movement[p1][numPatients + o][o][d] == 1;
+//	}
+//	
+//	forall (o in Operators, p1 in Patients, d in Days, t1 in TimeSlots){
+//		assignment[p1][o] * requestsPerTimeSlot[p1][d][t1] == 1 && sum(t in 1..t1-1)(sum(p in Patients)(assignment[p][o] * requestsPerTimeSlot[p][d][t])) == 0 => movement[numPatients + o][p1][o][d] == 1;
+//	}
+
+	// operator movement
+	// prevent self loops
+	forall (p in Patients, o in Operators, d in Days) {
+		movement[p][p][o][d] == 0;
 	}
 	
-	forall (o in Operators, p1 in Patients, d in Days, t1 in TimeSlots){
-		assignment[p1][o] * requestsPerTimeSlot[p1][d][t1] == 1 && sum(t in t1+1..numTimeSlots)(sum(p in Patients)(assignment[p][o] * requestsPerTimeSlot[p][d][t])) == 0 => movement[p1][numPatients + o][o][d] == 1;
+	// prevents movements from one operator to another
+	forall (o1 in Operators, o2 in Operators : o1 != o2, n in Nodes, d in Days) {
+		movement[n][numPatients + o2][o1][d] == 0;
+		movement[numPatients + o2][n][o1][d] == 0;
 	}
 	
-	forall (o in Operators, p1 in Patients, d in Days, t1 in TimeSlots){
-		assignment[p1][o] * requestsPerTimeSlot[p1][d][t1] == 1 && sum(t in 1..t1-1)(sum(p in Patients)(assignment[p][o] * requestsPerTimeSlot[p][d][t])) == 0 => movement[numPatients + o][p1][o][d] == 1;
-	}	
+	forall (p in Patients, o in Operators, d in Days, t in TimeSlots) {
+		if (t == 1){
+			movement[numPatients + o][p][o][d] == assignment[p][o] * requestsPerTimeSlot[p][d][t];
+		}
+		else {
+			movement[numPatients + o][p][o][d] == assignment[p][o] * requestsPerTimeSlot[p][d][t] * (1 - sum(p1 in Patients)(assignment[p1][o] * requestsPerTimeSlot[p1][d][t-1]));
+		}
+	}
+	
+//	// if patient p has required a visit, someone must go there and then leave
+//	forall (o in Operators, p in Patients, d in Days) {
+//		sum(j in Nodes) movement[p][j][o][d] == sum(t in TimeSlots) assignment[p][o] * requestsPerTimeSlot[p][d][t];
+//		sum(i in Nodes) movement[i][p][o][d] == sum(t in TimeSlots) assignment[p][o] * requestsPerTimeSlot[p][d][t];
+//	}
+//	
+//	forall (o in Operators, d in Days) {
+//		sum(j in Nodes) movement[numPatients + o][j][o][d] == 1;
+//		sum(i in Nodes) movement[i][numPatients + o][o][d] == 1;
+//	}
+//	
+//	// subtour elimination
+//	forall (o in Operators, d in Days, p1 in Patients, p2 in Patients) {
+//		movement[p1][p2][o][d] + movement[p2][p1][o][d] <= 1;
+//	}
 };
 
 /****************************************************************
@@ -262,6 +299,20 @@ int shifts[Operators][Days][TimeSlots];
 ****************************************************************/
 
 
+execute OP_ASS {
+	writeln("OPERATOR ASSIGNMENTS");
+	for(var o in Operators){
+		writeln("Operator ", o);
+		for(var p in Patients){
+			if(assignment[p][o] == 1){
+				writeln("Assigned patient ", p)
+			}
+		}
+	}
+	writeln();
+}
+
+
 execute OP_STATS {
 	writeln("OPERATOR STATS");
 	for(var o in Operators){
@@ -283,7 +334,7 @@ execute OP_STATS {
 	
 	writeln("Total shifts per operator:");
 	for(var o in Operators){
-		writeln(shifts[o]);
+		writeln("Operator ", o, ": ", shifts[o]);
 	}
 	writeln();
 }
@@ -307,9 +358,12 @@ execute MOV_COUNT {
 	    				if(i<=numPatients && j>numPatients) {
 	    					writeln("Movement from patient ", i, " to operator ", j - numPatients);
 	    				}
+	    				if(i>numPatients && j>numPatients) {
+	    					writeln("Movement from operator ", i - numPatients, " to operator ", j - numPatients)
+	    				}
       				}	    			
       			}
-    		}
+       		}      			
     	}
     	writeln();
     }
