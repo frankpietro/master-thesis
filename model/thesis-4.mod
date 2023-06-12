@@ -28,6 +28,8 @@ range Days = 1..numDays;
 // patients
 int numPatients = ...;
 range Patients = 1..numPatients;
+float patientLatitude[Patients] = ...;
+float patientLongitude[Patients] = ...;
 
 // operators
 int numOperators = ...;
@@ -38,6 +40,9 @@ float operatorWage[Operators] = ...;				// c_{o}
 int operatorAvailability[Operators][Days] = ...;	// r_{od}
 int operatorStartTime[Operators][Days] = ...;		// t_{od}^{1}		
 int operatorEndTime[Operators][Days] = ...;			// t_{od}^{2}
+float operatorLatitude[Operators] = ...;
+float operatorLongitude[Operators] = ...;
+
 
 // visits - indexed by patient and day
 int visitRequest[Patients][Days] = ...;				// r_{pd}
@@ -45,12 +50,6 @@ int visitSkill[Patients][Days] = ...;				// s_{pd}
 int visitStartTime[Patients][Days] = ...;			// t_{pd}^{1}		
 int visitEndTime[Patients][Days] = ...;				// t_{pd}^{2}
 int visitPriority[Patients][Days] = ...;
-
-// logistic network
-int numNodes = numPatients + numOperators;
-range Nodes = 1..numNodes;
-int commutingTime[Nodes][Nodes] = ...;				// a_{ij}
-float commutingCost = ...;							// gamma
 
 /****************************************************************
 	END SETS AND PROPERTIES
@@ -60,9 +59,11 @@ float commutingCost = ...;							// gamma
 	PREPROCESSING PARAMETERS
 ****************************************************************/
 
-// print info in a more readable way
-int visitsPerPatient[Patients];
-int patientRequiredTime[Patients];
+// logistic network
+int numNodes = numPatients + numOperators;
+range Nodes = 1..numNodes;
+float commutingTime[Nodes][Nodes] = ...;					// a_{ij}
+float commutingCost = ...;							// gamma
 
 // support for the computations
 int feasiblePatients[Operators][Patients];
@@ -76,6 +77,7 @@ int feasiblePatients[Operators][Patients];
 	PREPROCESSING
 ****************************************************************/
 
+/*
 execute PATIENT_STATS {	
 	for(var p in Patients){
 		for(var d in Days){
@@ -87,6 +89,56 @@ execute PATIENT_STATS {
 	writeln("Visits per patient:", visitsPerPatient);
 	writeln("Time required by patients:", patientRequiredTime);
 }	
+*/
+
+//execute COMMUTING_TIME {
+//	for (var i in Nodes) {
+//    	for (var j in Nodes) {
+//            if (i != j) {
+//                var x1, y1, x2, y2, distance;
+//                if (i <= numPatients) {
+//                    // Node i is a patient
+//                    x1 = patientLatitude[i];
+//                    y1 = patientLongitude[i];
+//                } else {
+//                    // Node i is an operator
+//                    x1 = operatorLatitude[i - numPatients];
+//                    y1 = operatorLongitude[i - numPatients];
+//                }
+//                if (j <= numPatients) {
+//                    // Node j is a patient
+//                    x2 = patientLatitude[j];
+//                    y2 = patientLongitude[j];
+//                } else {
+//                    // Node j is an operator
+//                    x2 = operatorLatitude[j - numPatients];
+//                    y2 = operatorLongitude[j - numPatients];
+//                }
+//                var x_dist, y_dist;
+//                if (x2 - x1 > 0){
+//                	x_dist = x2 - x1;
+//                } else {
+//                	x_dist = x1 - x2;
+//                }
+//                if (y2 - y1 > 0){
+//                	y_dist = y2 - y1;
+//                } else {
+//                	y_dist = y1 - y2;
+//                }
+//                commutingTime[i][j] = x_dist + y_dist;
+//            } else {
+//                commutingTime[i][j] = 0.0; // Same node, commuting time is 0
+//            }
+//        }
+//    }
+//    
+//    write("commutingTime = [");
+//	for(var n in Nodes){
+//		writeln(commutingTime[n], ",");
+//	}
+//	
+//	writeln("]");
+//}
 
 
 execute FEASIBLE_PATIENTS {
@@ -115,11 +167,17 @@ execute FEASIBLE_PATIENTS {
 		}
 	}
 	
-	writeln("Feasible patients per operator:");
+//	writeln("Feasible patients per operator:");
+//	for(var o in Operators){
+//		writeln("Operator ", o, ":", feasiblePatients[o]);
+//	}
+
+	write("feasiblePatients = [");
 	for(var o in Operators){
-		writeln("Operator ", o, ":", feasiblePatients[o]);
+		writeln(feasiblePatients[o], ",");
 	}
 	
+	writeln("]");
 }
 
 /****************************************************************
@@ -222,21 +280,46 @@ subject to {
 
 
 /****************************************************************
-	POSTPROCESSING PARAMETERS
-****************************************************************/
-
-//int shifts[Operators][Days];
-
-/****************************************************************
-	END POSTPROCESSING PARAMETERS
-****************************************************************/
-
-
-/****************************************************************
 	POSTPROCESSING
 ****************************************************************/
 
+execute PRINT_VARS {
+	writeln("assignment = [");
+	for(var p in Patients){
+		writeln(assignment[p], ",")
+	}
+	writeln("]");
+	
+	writeln("movement = [");
+	for(var i in Nodes){
+		writeln("[");
+		for(var j in Nodes){
+			writeln("[");
+			for(var o in Operators){
+				writeln(movement[i][j][o], ",");
+			}
+			writeln("],");
+		}
+		writeln("],");
+	}
+	writeln("]");
+	
+	
+	writeln("workload = ", operatorWorkload);
+	writeln();
+	
+	writeln("visitExecution = [");
+	for(var o in Operators){
+		writeln("[");
+		for(var p in Patients){
+			writeln(visitExecution[o][p], ",")
+		}
+		writeln("],");
+	}
+	writeln("]");
+}
 
+/*
 execute OP_ASS {
 	writeln("OPERATOR ASSIGNMENTS");
 	for(var o in Operators){
@@ -343,6 +426,7 @@ execute COSTS {
 	costs += movement_costs;
 	writeln("Total costs: ", costs);
 }
+*/
 
 /****************************************************************
 	END POSTPROCESSING
