@@ -91,55 +91,6 @@ execute PATIENT_STATS {
 }	
 */
 
-//execute COMMUTING_TIME {
-//	for (var i in Nodes) {
-//    	for (var j in Nodes) {
-//            if (i != j) {
-//                var x1, y1, x2, y2, distance;
-//                if (i <= numPatients) {
-//                    // Node i is a patient
-//                    x1 = patientLatitude[i];
-//                    y1 = patientLongitude[i];
-//                } else {
-//                    // Node i is an operator
-//                    x1 = operatorLatitude[i - numPatients];
-//                    y1 = operatorLongitude[i - numPatients];
-//                }
-//                if (j <= numPatients) {
-//                    // Node j is a patient
-//                    x2 = patientLatitude[j];
-//                    y2 = patientLongitude[j];
-//                } else {
-//                    // Node j is an operator
-//                    x2 = operatorLatitude[j - numPatients];
-//                    y2 = operatorLongitude[j - numPatients];
-//                }
-//                var x_dist, y_dist;
-//                if (x2 - x1 > 0){
-//                	x_dist = x2 - x1;
-//                } else {
-//                	x_dist = x1 - x2;
-//                }
-//                if (y2 - y1 > 0){
-//                	y_dist = y2 - y1;
-//                } else {
-//                	y_dist = y1 - y2;
-//                }
-//                commutingTime[i][j] = x_dist + y_dist;
-//            } else {
-//                commutingTime[i][j] = 0.0; // Same node, commuting time is 0
-//            }
-//        }
-//    }
-//    
-//    write("commutingTime = [");
-//	for(var n in Nodes){
-//		writeln(commutingTime[n], ",");
-//	}
-//	
-//	writeln("]");
-//}
-
 
 execute FEASIBLE_PATIENTS {
 	for(var o in Operators){
@@ -167,11 +118,6 @@ execute FEASIBLE_PATIENTS {
 		}
 	}
 	
-//	writeln("Feasible patients per operator:");
-//	for(var o in Operators){
-//		writeln("Operator ", o, ":", feasiblePatients[o]);
-//	}
-
 	write("feasiblePatients = [");
 	for(var o in Operators){
 		writeln(feasiblePatients[o], ",");
@@ -196,7 +142,7 @@ dvar int operatorWorkload[Operators];
 dvar boolean visitExecution[Operators][Patients][Days];
 
 // objective function: cost
-dexpr float costs = sum(o in Operators)(
+dexpr float objective = sum(o in Operators)(
 	operatorWage[o] * sum(p in Patients)(
 		 sum(d in Days)(visitExecution[o][p][d] * (visitEndTime[p][d] - visitStartTime[p][d]))
 	) + commutingCost * sum(i in Nodes, j in Nodes)(
@@ -213,7 +159,7 @@ dexpr float costs = sum(o in Operators)(
 	COMPUTATION
 ****************************************************************/
 
-minimize costs;
+minimize objective;
 
 subject to {
 	// each patient must be assigned to exactly one operator
@@ -242,7 +188,6 @@ subject to {
 		
 		operatorWorkload[o] <= operatorTime[o];
 	}
-	
 	
 	/*
 		OPERATOR MOVEMENT
@@ -319,114 +264,114 @@ execute PRINT_VARS {
 	writeln("]");
 }
 
-/*
-execute OP_ASS {
-	writeln("OPERATOR ASSIGNMENTS");
-	for(var o in Operators){
-		writeln("Operator ", o);
-		for(var p in Patients){
-			if(assignment[p][o] == 1){
-				writeln("Assigned patient ", p)
-			}
-		}
-		writeln("Workload: ", operatorWorkload[o]);
-		writeln();
-	}
-	writeln();
-}
 
+//execute OP_ASS {
+//	writeln("OPERATOR ASSIGNMENTS");
+//	for(var o in Operators){
+//		writeln("Operator ", o);
+//		for(var p in Patients){
+//			if(assignment[p][o] == 1){
+//				writeln("Assigned patient ", p)
+//			}
+//		}
+//		writeln("Workload: ", operatorWorkload[o]);
+//		writeln();
+//	}
+//	writeln();
+//}
+//
+//
+//execute MOV_COUNT {
+//	writeln("MOVEMENT COUNT");
+//    for (var o in Operators) {
+//    	writeln("Operator ", o)
+//    	for (var d in Days) {
+//    	  	writeln("Movements of day ", d);
+//    		for (var i in Nodes) {
+//    			for(var j in Nodes){
+//	    			if (movement[i][j][o][d] == 1){
+//	    				if(i<=numPatients && j<=numPatients){
+//	    					writeln("Movement from patient ", i, " to patient ", j);
+//	    				}
+//	    				if(i>numPatients && j<=numPatients) {
+//	    					writeln("Movement from operator ", i - numPatients, " to patient ", j);
+//	    				}
+//	    				if(i<=numPatients && j>numPatients) {
+//	    					writeln("Movement from patient ", i, " to operator ", j - numPatients);
+//	    				}
+//	    				if(i>numPatients && j>numPatients) {
+//	    					writeln("Movement from operator ", i - numPatients, " to operator ", j - numPatients)
+//	    				}
+//      				}	    			
+//      			}
+//       		}      			
+//    	}
+//    	writeln();
+//    }
+//}
+//
+//
+//execute VISIT_EXEC {
+//	writeln("VISIT EXECUTION");
+//	var total_ex = 0;
+//	var total_not_ex = 0;
+//	for (var p in Patients) {
+//		for (var d in Days) {
+//			if (visitRequest[p][d] == 1){
+//				writeln("Patient ", p , " requested visit on day ", d);
+//				var executed = 0;
+//				for (var o in Operators){
+//					if (visitExecution[o][p][d] == 1){
+//						writeln("Visit executed by operator ", o);
+//						executed = 1;
+//					}
+//				}
+//				if (executed == 0){
+//					writeln("Visit not executed!");
+//				}
+//				total_ex += executed;
+//				total_not_ex += (1 - executed);
+// 			}
+//		}
+//	}
+//	
+//	writeln();
+//	writeln("Total executed visits: ", total_ex);
+//	writeln("Total not executed visits: ", total_not_ex);
+//	writeln();
+//}
+//
+//
+//execute COSTS {
+//	writeln("ACTUAL COSTS");
+//	var costs = 0;
+//	for (var p in Patients){
+//		var patient_costs = 0;
+//		for (var o in Operators){
+//			for (var d in Days){
+//				patient_costs += visitExecution[o][p][d] * (visitEndTime[p][d] - visitStartTime[p][d]);
+//			}
+//		}
+//		costs += patient_costs;
+//		writeln(patient_costs, " spent for patient ", p);
+//	}
+//	
+//	var movement_costs = 0;
+//	for (var i in Nodes){
+//		for (var j in Nodes){
+//			for (var o in Operators){
+//				for (var d in Days){
+//					movement_costs += movement[i][j][o][d] * commutingTime[i][j] * commutingCost;
+//				}
+//			}
+//		}
+//	}
+//	writeln("Movement costs: ", movement_costs);
+//	
+//	costs += movement_costs;
+//	writeln("Total costs: ", costs);
+//}
 
-execute MOV_COUNT {
-	writeln("MOVEMENT COUNT");
-    for (var o in Operators) {
-    	writeln("Operator ", o)
-    	for (var d in Days) {
-    	  	writeln("Movements of day ", d);
-    		for (var i in Nodes) {
-    			for(var j in Nodes){
-	    			if (movement[i][j][o][d] == 1){
-	    				if(i<=numPatients && j<=numPatients){
-	    					writeln("Movement from patient ", i, " to patient ", j);
-	    				}
-	    				if(i>numPatients && j<=numPatients) {
-	    					writeln("Movement from operator ", i - numPatients, " to patient ", j);
-	    				}
-	    				if(i<=numPatients && j>numPatients) {
-	    					writeln("Movement from patient ", i, " to operator ", j - numPatients);
-	    				}
-	    				if(i>numPatients && j>numPatients) {
-	    					writeln("Movement from operator ", i - numPatients, " to operator ", j - numPatients)
-	    				}
-      				}	    			
-      			}
-       		}      			
-    	}
-    	writeln();
-    }
-}
-
-
-execute VISIT_EXEC {
-	writeln("VISIT EXECUTION");
-	var total_ex = 0;
-	var total_not_ex = 0;
-	for (var p in Patients) {
-		for (var d in Days) {
-			if (visitRequest[p][d] == 1){
-				writeln("Patient ", p , " requested visit on day ", d);
-				var executed = 0;
-				for (var o in Operators){
-					if (visitExecution[o][p][d] == 1){
-						writeln("Visit executed by operator ", o);
-						executed = 1;
-					}
-				}
-				if (executed == 0){
-					writeln("Visit not executed!");
-				}
-				total_ex += executed;
-				total_not_ex += (1 - executed);
- 			}
-		}
-	}
-	
-	writeln();
-	writeln("Total executed visits: ", total_ex);
-	writeln("Total not executed visits: ", total_not_ex);
-	writeln();
-}
-
-
-execute COSTS {
-	writeln("ACTUAL COSTS");
-	var costs = 0;
-	for (var p in Patients){
-		var patient_costs = 0;
-		for (var o in Operators){
-			for (var d in Days){
-				patient_costs += visitExecution[o][p][d] * (visitEndTime[p][d] - visitStartTime[p][d]);
-			}
-		}
-		costs += patient_costs;
-		writeln(patient_costs, " spent for patient ", p);
-	}
-	
-	var movement_costs = 0;
-	for (var i in Nodes){
-		for (var j in Nodes){
-			for (var o in Operators){
-				for (var d in Days){
-					movement_costs += movement[i][j][o][d] * commutingTime[i][j] * commutingCost;
-				}
-			}
-		}
-	}
-	writeln("Movement costs: ", movement_costs);
-	
-	costs += movement_costs;
-	writeln("Total costs: ", costs);
-}
-*/
 
 /****************************************************************
 	END POSTPROCESSING

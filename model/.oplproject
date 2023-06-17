@@ -6,67 +6,12 @@
     	
     <configs>
         		
-        <config default="false" name="version-0" category="opl">
-            			
-            <ref name="thesis.ops" type="setting">
-			</ref>
-            			
-            <ref name="thesis-0.mod" type="model">
-			</ref>
-            			
-            <ref name="thesis-0.dat" type="data">
-			</ref>
-            		
-        </config>
-        		
-        <config default="false" name="version-1" category="opl">
-            			
-            <ref name="thesis-1.mod" type="model">
-			</ref>
-            			
-            <ref name="thesis-1.dat" type="data">
-			</ref>
-            			
-            <ref name="thesis.ops" type="setting">
-			</ref>
-            		
-        </config>
-        		
-        <config default="false" name="version-2" category="opl">
-            			
-            <ref name="thesis-2.mod" type="model">
-			</ref>
-            			
-            <ref name="thesis-2.dat" type="data">
-			</ref>
-            			
-            <ref name="thesis.ops" type="setting">
-			</ref>
-            		
-        </config>
-        		
-        <config default="false" name="version-3" category="opl">
-            			
-            <ref name="thesis-3.mod" type="model">
-			</ref>
-            			
-            <ref name="thesis.ops" type="setting">
-			</ref>
-            			
-            <ref name="thesis-3.dat" type="data">
-			</ref>
-            		
-        </config>
-        		
         <config default="true" name="version-4" category="opl">
             			
             <ref name="thesis-4.mod" type="model">
 			</ref>
             			
             <ref name="thesis-4.dat" type="data">
-			</ref>
-            			
-            <ref name="thesis.ops" type="setting">
 			</ref>
             			
             <ref name="commuting.dat" type="data">

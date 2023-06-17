@@ -11,8 +11,12 @@ DAT_TO_PY = f'{SCRIPTS_FOLDER}dat_to_py.sh'
 OUT_TO_PY = f'{SCRIPTS_FOLDER}out_to_py.sh'
 
 # model data
-INPUT_DATA = f'{DATA_FOLDER}input_data.py'
+# INPUT_DATA = f'{DATA_FOLDER}input_data.py'
 OUTPUT_DATA = f'{DATA_FOLDER}output_data.py'
+# COMM_DATA = f'{DATA_FOLDER}commuting_time.py'
+INPUT_JSON = f'{DATA_FOLDER}input_data.json'
+OUTPUT_JSON = f'{DATA_FOLDER}output_data.json'
+COMM_JSON = f'{DATA_FOLDER}commuting_time.json'
 TMP_FILE = 'tmp.output'
 
 # model files
