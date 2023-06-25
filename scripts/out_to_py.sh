@@ -23,5 +23,3 @@ sed -i -E 's/OBJECTIVE: (.*)/objective = \1/g' "$filename"
 
 # save
 cp $filename $2
-
-rm $filename

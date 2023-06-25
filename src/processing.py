@@ -1,35 +1,9 @@
 import os
-from . import constants as c
 import json
-import numpy as np
 
-from scipy.spatial import distance_matrix
-
-
-def compute_commuting_matrix():
-    input_data = retrieve_JSON(c.INPUT_JSON)
-    lats = input_data['patientLatitude'] + input_data['operatorLatitude']
-    lons = input_data['patientLongitude'] + input_data['operatorLongitude']
-
-    # generate matrix with euclidean distances
-    return distance_matrix(np.array([lats, lons]).T, np.array([lats, lons]).T)
-
-
-def write_commuting_matrix(matrix):
-    with open(c.COMM_FILE, 'w') as f:
-        f.write('commutingTime = [\n')
-        for i in range(len(matrix)):
-            f.write('\t[' + ','.join([str(round(x,2)) for x in matrix[i]]))
-            
-            if i != len(matrix) - 1:
-                f.write('],\n')
-            else:
-                f.write(']\n')
-
-        f.write('];\n')
-
-    json_to_save = {"commutingTime": matrix.tolist()}
-    save_JSON(json_to_save, c.COMM_JSON)
+import python.constants as c
+import python.utilities as u
+import python.stats as s
 
 
 def generate_JSON(dir_name):
@@ -42,19 +16,7 @@ def generate_JSON(dir_name):
     return data
 
 
-def save_JSON(data, file_name):
-    # save it in a .json file
-    with open(file_name, 'w') as f:
-        json.dump(data, f, indent=4)
-    
-
-def retrieve_JSON(file_name):
-    # retrieve it from the .json file
-    with open(file_name, 'r') as f:
-        return json.load(f)
-    
-
-def json_to_dat(dat_file, json_file=None, json_data=None):    
+def JSON_to_dat(dat_file, json_file=None, json_data=None):    
     def write_value(val, tabs=0, comma=False):
         write_str = ''
         if isinstance(val, list):
@@ -96,27 +58,62 @@ def json_to_dat(dat_file, json_file=None, json_data=None):
             file.write(";\n\n")
 
 
-def preprocess():
-    # compute commuting matrix
-    matrix = compute_commuting_matrix()
-    # save both as a .dat and a .json file
-    write_commuting_matrix(matrix)
-
-    # save input data as .dat file
-    json_to_dat(c.DAT_FILE, json_file=c.INPUT_JSON)
+def preprocess(verbose=False):
+    if verbose:
+        print("Start preprocessing...")
     
-    # run the model
+    # compute commuting matrix and save as a .json file
+    u.generate_commuting_matrix()
+
+    if verbose:
+        print("Generated commuting matrix")
+
+    # save all data in a .dat file
+    input_data = u.merge_JSON_files(c.INPUT_JSON_PATHS)
+    JSON_to_dat(c.DAT_FILE, json_data=input_data)
+
+    if verbose:
+        print("Generated .dat file")
+    
+
+def run_solver(verbose=False):
+    if verbose:
+        print("Start running solver...")
+    
+    # run the IBM solver
     os.system(c.EXECUTION_COMMAND)
 
+    if verbose:
+        print("Run ended")
+
+
+def postprocess(verbose=False):
+    if verbose:
+        print("Start postprocessing...")
+    
     # retrieve output data and create a file in the data folder
     os.system(f'{c.OUT_TO_PY} {c.TMP_FILE} {c.OUTPUT_DATA}')
 
     # save the output data in a .json file
     import data.output_data as out_d
     data = generate_JSON(out_d)
-    save_JSON(data, c.OUTPUT_JSON)
+    u.save_JSON(data, c.OUTPUT_JSON)
+
+    if verbose:
+        print("Output data saved")
 
     # remove the python file
+    os.remove(c.TMP_FILE)
     os.remove(c.OUTPUT_DATA)
     os.system(f"touch {c.OUTPUT_DATA}")
 
+    if verbose:
+        print("Cleaning completed")
+        print("Postprocessing completed")
+
+
+def run(verbose=False):
+    preprocess(verbose)
+    run_solver(verbose)
+    postprocess(verbose)
+    s.get_objective(verbose)

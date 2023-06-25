@@ -1,0 +1,9 @@
+ISSUES
+- If the problem has no solution the code breaks
+- out to py and py to JSON --> out to JSON
+
+TODO
+- Move commutingTime to input JSON, remove commuting JSON
+- Add visits for new patients
+- Add visits for already saved patients
+- Remove operator availability for one day and reschedule its visits
